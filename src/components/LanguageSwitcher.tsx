@@ -30,7 +30,7 @@ export default function LanguageSwitcher({ scrolled = false }: LanguageSwitcherP
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-1 px-2 py-1.5 text-sm font-medium transition-colors ${scrolled ? 'text-gray-900 hover:text-gray-600' : 'text-white hover:text-white/80'
+                className={`flex items-center gap-1 px-2 py-1.5 text-sm font-medium transition-colors ${scrolled ? 'text-gray-900 hover:text-gray-600' : 'text-gray-700 hover:text-gray-900'
                     }`}
                 aria-label="Change language"
             >

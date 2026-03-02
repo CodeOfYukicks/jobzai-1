@@ -7,7 +7,6 @@ import {
   Mail,
   ScrollText,
   Settings,
-  ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -119,6 +118,11 @@ export default function Navbar() {
   const isPublicPage = location.pathname === '/' || location.pathname === '/blog';
   const showPublicMenu = !currentUser || isPublicPage;
 
+  // Only the landing page has a light hero background — blog/FAQ have dark backgrounds
+  const isLightHero = location.pathname === '/' && !location.pathname.startsWith('/blog') && !location.pathname.startsWith('/faq');
+  // When not scrolled: use dark text on landing page (light bg), white text on blog/FAQ (dark bg)
+  const useWhiteText = !scrolled && !isLightHero;
+
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-out will-change-transform ${scrolled
       ? 'py-2 px-4'
@@ -140,7 +144,7 @@ export default function Navbar() {
                 path={
                   location.pathname.startsWith('/blog')
                     ? "images/logo_blog.png"
-                    : (scrolled ? "images/logo-cubbbe-black.png" : "images/logo-cubbbe-white.png")
+                    : (useWhiteText ? "images/logo-cubbbe-white.png" : "images/logo-cubbbe-black.png")
                 }
                 alt="Cubbbe"
                 className={location.pathname.startsWith('/blog') ? "h-16 w-auto" : "h-14 w-auto"}
@@ -155,7 +159,7 @@ export default function Navbar() {
                 <a
                   key={item.key}
                   href={item.href}
-                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled ? 'text-gray-900 hover:text-gray-600' : 'text-white hover:text-white/80'}`}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${scrolled ? 'text-gray-900 hover:text-gray-600' : useWhiteText ? 'text-white hover:text-white/80' : 'text-gray-700 hover:text-gray-900'}`}
                 >
                   {t(item.key)}
                 </a>
@@ -182,10 +186,10 @@ export default function Navbar() {
           {/* Desktop Right Side Actions - Public menu sur landing page ou si pas connecté */}
           {showPublicMenu && (
             <div className="hidden md:flex items-center gap-3">
-              <LanguageSwitcher scrolled={scrolled} />
+              <LanguageSwitcher scrolled={scrolled || isLightHero} />
               <Link
                 to="/login"
-                className={`px-4 py-2 text-sm font-medium transition-colors ${scrolled ? 'text-gray-700 hover:text-gray-900' : 'text-white hover:text-white/80'}`}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${scrolled ? 'text-gray-700 hover:text-gray-900' : useWhiteText ? 'text-white hover:text-white/80' : 'text-gray-700 hover:text-gray-900'}`}
               >
                 {t('nav.login')}
               </Link>
@@ -193,7 +197,7 @@ export default function Navbar() {
                 to="/signup"
                 className={`px-4 py-2 text-sm font-medium rounded-full transition-all duration-200 shadow-sm hover:shadow ${scrolled
                   ? 'text-gray-900 bg-white/80 hover:bg-white border border-gray-200 hover:border-gray-300'
-                  : 'text-gray-900 bg-white hover:bg-gray-100 border border-transparent'
+                  : useWhiteText ? 'text-gray-900 bg-white hover:bg-gray-100 border border-transparent' : 'text-gray-900 bg-gray-900 text-white hover:bg-gray-800 border border-transparent'
                   }`}
               >
                 {t('nav.signup')}
@@ -205,7 +209,7 @@ export default function Navbar() {
           <div className="flex md:hidden">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`p-1.5 rounded-md transition-colors ${scrolled ? 'text-gray-900 hover:bg-gray-900/5' : 'text-white hover:bg-white/10'}`}
+              className={`p-1.5 rounded-md transition-colors ${scrolled ? 'text-gray-900 hover:bg-gray-900/5' : useWhiteText ? 'text-white hover:bg-white/10' : 'text-gray-700 hover:bg-gray-900/5'}`}
             >
               {isMobileMenuOpen ? (
                 <X className="h-6 w-6" />

@@ -19,7 +19,11 @@
         "ctaPrimary": "Get started free",
         "ctaSecondary": "How it works",
         "socialProof": "20K+ users",
-        "logoSection": "Our users landed offers at"
+        "logoSection": "Our users landed offers at",
+        "floatingCard1": "12 interviews landed",
+        "floatingCard2": "Response rate",
+        "floatingCard3": "this week",
+        "trustedBy": "Trusted by 20K+ job seekers"
     },
     "features": {
         "sectionTitle": "The future of job search.",

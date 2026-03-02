@@ -202,20 +202,30 @@ export default function PricingSection() {
 
   return (
     <section id="pricing" className="py-12 md:py-16 bg-white">
-      <div className="max-w-7xl mx-auto px-4 md:px-6">
-        {/* Green rounded container */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 relative">
+        {/* Sticker 5: OK Hand - Outside container, on top of border */}
+        <img
+          src="/images/stickers/5.png"
+          alt=""
+          className="absolute -top-6 -right-0 md:-right-2 w-20 md:w-28 lg:w-36 rotate-[15deg] z-30 pointer-events-none hidden md:block"
+        />
+        {/* Rounded container */}
         <div
-          className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 py-12 md:py-16 relative"
-          style={{ backgroundColor: '#004b23' }}
+          className="rounded-3xl md:rounded-[40px] px-4 md:px-8 lg:px-12 py-12 md:py-16 relative overflow-hidden"
         >
-          {/* Sticker 5: OK Hand - Top Right of Pricing Container */}
-          <img
-            src="/images/stickers/5.png"
-            alt=""
-            className="absolute -top-6 -right-4 md:-right-8 w-20 md:w-28 lg:w-36 rotate-[15deg] z-20 pointer-events-none hidden md:block"
+          {/* Background image */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `url('/images/pricing-bg.png')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
           />
+          {/* Subtle overlay for readability */}
+          <div className="absolute inset-0 bg-black/30" />
           {/* Header */}
-          <div className="text-center mb-8 md:mb-10">
+          <div className="text-center mb-8 md:mb-10 relative z-10">
             <h2
               className="text-3xl md:text-4xl lg:text-5xl font-bold text-white tracking-tight mb-4"
               style={{ fontFamily: 'Outfit, sans-serif' }}
@@ -253,7 +263,7 @@ export default function PricingSection() {
           </div>
 
           {/* Mobile Carousel */}
-          <div className="md:hidden">
+          <div className="md:hidden relative z-10">
             <div
               ref={carouselRef}
               className="flex items-stretch overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-4 px-4 pb-4"
@@ -301,7 +311,7 @@ export default function PricingSection() {
           </div>
 
           {/* Desktop Grid */}
-          <div className="hidden md:grid grid-cols-3 gap-4 max-w-6xl mx-auto">
+          <div className="hidden md:grid grid-cols-3 gap-4 max-w-6xl mx-auto relative z-10">
             {pricingTiers.map((tier, index) => (
               <div key={tier.nameKey} className={`${tier.popular ? 'pt-3' : 'pt-6'}`}>
                 <PricingCard tier={tier} index={index} />

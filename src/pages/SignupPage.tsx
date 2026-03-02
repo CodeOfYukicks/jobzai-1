@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { notify } from '@/lib/notify';
 import { forceLightMode } from '../lib/theme';
 import FirebaseImage from '../components/FirebaseImage';
-import { AuthRightPanel } from '../components/auth';
 
 export default function SignupPage() {
   const [firstName, setFirstName] = useState('');
@@ -35,12 +34,10 @@ export default function SignupPage() {
     };
   }, [password]);
 
-  // Check if password meets all requirements
   const isPasswordValid = useMemo(() => {
     return Object.values(passwordCriteria).every(Boolean);
   }, [passwordCriteria]);
 
-  // Check if passwords match
   const passwordsMatch = useMemo(() => {
     return password && confirmPassword && password === confirmPassword;
   }, [password, confirmPassword]);
@@ -108,12 +105,14 @@ export default function SignupPage() {
 
   if (showVerificationMessage) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen relative flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0" style={{ backgroundImage: `url('/images/hero-bg.png')`, backgroundSize: 'cover', backgroundPosition: 'center top' }} />
+        <div className="absolute inset-0 bg-white/40 backdrop-blur-sm" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-md w-full space-y-8 bg-white text-center"
+          className="relative z-10 max-w-md w-full space-y-8 bg-white/80 backdrop-blur-xl rounded-2xl p-8 shadow-xl border border-white/50 text-center"
         >
           <div>
             <div className="w-16 h-16 mx-auto rounded-2xl bg-gray-100 flex items-center justify-center mb-6">
@@ -138,7 +137,7 @@ export default function SignupPage() {
 
             <Link
               to="/login"
-              className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white bg-[#004b23] rounded-xl hover:bg-[#00381a] transition-all"
+              className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-all"
             >
               Continue to login
             </Link>
@@ -149,35 +148,40 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6">
       <SEO
         title="Inscription – Cubbbe | Créez votre compte gratuitement"
         description="Créez votre compte Cubbbe et commencez à automatiser votre recherche d'emploi avec l'IA. Inscription gratuite."
         url="/signup"
       />
-      {/* Form Panel - Left */}
-      <div className="w-full lg:w-[45%] min-h-screen flex items-center justify-center p-6 lg:p-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full max-w-[400px]"
-        >
+
+      {/* Background image */}
+      <div className="absolute inset-0" style={{ backgroundImage: `url('/images/hero-bg.png')`, backgroundSize: 'cover', backgroundPosition: 'center top' }} />
+      <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px]" />
+
+      {/* Centered form card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-[420px]"
+      >
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl p-7 sm:p-8 shadow-xl border border-white/50">
           {/* Logo */}
-          <Link to="/" className="flex justify-center lg:justify-start mb-8">
+          <Link to="/" className="flex justify-center mb-6">
             <FirebaseImage
               path="images/logo-only.png"
-              alt="JOBZ.AI Logo"
-              className="h-10 w-auto"
+              alt="Cubbbe Logo"
+              className="h-9 w-auto"
             />
           </Link>
 
           {/* Header */}
-          <div className="mb-8 text-center lg:text-left">
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
               Create your account
             </h1>
-            <p className="mt-2 text-gray-500 text-sm">
+            <p className="mt-1.5 text-gray-500 text-sm">
               Already have an account?{' '}
               <Link to="/login" className="text-gray-900 font-medium hover:underline">
                 Sign in
@@ -185,18 +189,18 @@ export default function SignupPage() {
             </p>
           </div>
 
-          {/* Google Button - FIRST and PROMINENT */}
+          {/* Google Button */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5
-              bg-white border-2 border-gray-200 rounded-xl 
+            className="w-full flex items-center justify-center gap-3 px-4 py-3
+              bg-white border border-gray-200 rounded-xl 
               hover:border-gray-300 hover:bg-gray-50
-              transition-all duration-200 text-[15px] font-medium
+              transition-all duration-200 text-sm font-medium
               disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <svg width="20" height="20" viewBox="0 0 18 18">
+            <svg width="18" height="18" viewBox="0 0 18 18">
               <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" />
               <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" />
               <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.192 0 7.556 0 9s.348 2.808.957 4.039l3.007-2.332z" />
@@ -206,19 +210,19 @@ export default function SignupPage() {
           </button>
 
           {/* Separator */}
-          <div className="relative my-6">
+          <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200" />
             </div>
             <div className="relative flex justify-center">
-              <span className="px-4 bg-white text-gray-400 text-xs uppercase tracking-wider">
+              <span className="px-3 bg-white/80 text-gray-400 text-xs uppercase tracking-wider">
                 or
               </span>
             </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {/* Name Inputs */}
             <div className="grid grid-cols-2 gap-3">
               <div className="relative">
@@ -227,7 +231,7 @@ export default function SignupPage() {
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-3 bg-gray-50 border-0 
+                  className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border-0 
                     rounded-xl text-gray-900 placeholder-gray-400 
                     focus:outline-none focus:ring-2 focus:ring-gray-900
                     transition-all text-sm"
@@ -240,7 +244,7 @@ export default function SignupPage() {
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="block w-full pl-10 pr-4 py-3 bg-gray-50 border-0 
+                  className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border-0 
                     rounded-xl text-gray-900 placeholder-gray-400 
                     focus:outline-none focus:ring-2 focus:ring-gray-900
                     transition-all text-sm"
@@ -256,7 +260,7 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full pl-10 pr-4 py-3 bg-gray-50 border-0 
+                className="block w-full pl-10 pr-4 py-2.5 bg-gray-50 border-0 
                   rounded-xl text-gray-900 placeholder-gray-400 
                   focus:outline-none focus:ring-2 focus:ring-gray-900
                   transition-all text-sm"
@@ -274,7 +278,7 @@ export default function SignupPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   onFocus={() => setPasswordFocused(true)}
                   onBlur={() => setPasswordFocused(false)}
-                  className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border-0 
+                  className={`block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-0 
                     rounded-xl text-gray-900 placeholder-gray-400 
                     focus:outline-none focus:ring-2 transition-all text-sm
                     ${password && !isPasswordValid ? 'ring-2 ring-red-400' : 'focus:ring-gray-900'}`}
@@ -289,7 +293,7 @@ export default function SignupPage() {
                 </button>
               </div>
 
-              {/* Password Requirements - Only show when focused and not valid */}
+              {/* Password Requirements */}
               {password && (passwordFocused || !isPasswordValid) && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -328,7 +332,7 @@ export default function SignupPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`block w-full pl-10 pr-10 py-3 bg-gray-50 border-0 
+                  className={`block w-full pl-10 pr-10 py-2.5 bg-gray-50 border-0 
                     rounded-xl text-gray-900 placeholder-gray-400 
                     focus:outline-none focus:ring-2 transition-all text-sm
                     ${confirmPassword && !passwordsMatch
@@ -357,8 +361,8 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isLoading || !isPasswordValid || !passwordsMatch || !firstName || !lastName || !email}
-              className="w-full flex justify-center items-center gap-2 px-4 py-3.5
-                bg-[#004b23] hover:bg-[#00381a]
+              className="w-full flex justify-center items-center gap-2 px-4 py-3
+                bg-gray-900 hover:bg-gray-800
                 text-white font-medium rounded-xl
                 transition-all text-sm
                 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -378,16 +382,30 @@ export default function SignupPage() {
           </form>
 
           {/* Terms */}
-          <p className="mt-6 text-center text-xs text-gray-400">
+          <p className="mt-5 text-center text-xs text-gray-400">
             By creating an account, you agree to our{' '}
             <Link to="/terms" className="underline hover:text-gray-600">Terms</Link>
             {' '}and{' '}
             <Link to="/privacy" className="underline hover:text-gray-600">Privacy Policy</Link>
           </p>
-        </motion.div>
-      </div>
-      {/* Side Panel - Right (Desktop Only) */}
-      <AuthRightPanel variant="signup" />
+        </div>
+
+        {/* Social proof below card */}
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <div className="flex -space-x-1.5">
+            {[
+              'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=b6e3f4',
+              'https://api.dicebear.com/7.x/avataaars/svg?seed=Mike&backgroundColor=c0aede',
+              'https://api.dicebear.com/7.x/avataaars/svg?seed=Emma&backgroundColor=ffd5dc',
+            ].map((src, i) => (
+              <div key={i} className="w-5 h-5 rounded-full border-2 border-white overflow-hidden bg-gray-100">
+                <img src={src} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+          </div>
+          <span className="text-xs text-gray-500">Join <strong className="text-gray-700">20,000+</strong> job seekers</span>
+        </div>
+      </motion.div>
     </div>
   );
 }

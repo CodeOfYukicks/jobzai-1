@@ -19,7 +19,11 @@
         "ctaPrimary": "Essayer gratuit",
         "ctaSecondary": "Voir la démo",
         "socialProof": "20K+ utilisateurs",
-        "logoSection": "Nos utilisateurs ont été recrutés chez"
+        "logoSection": "Nos utilisateurs ont été recrutés chez",
+        "floatingCard1": "12 entretiens décrochés",
+        "floatingCard2": "Taux de réponse",
+        "floatingCard3": "cette semaine",
+        "trustedBy": "Adopté par 20K+ chercheurs d'emploi"
     },
     "features": {
         "sectionTitle": "Le futur de la recherche d'emploi.",
