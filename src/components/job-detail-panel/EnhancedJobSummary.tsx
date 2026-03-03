@@ -27,7 +27,7 @@ interface InsightCard {
 
 export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
   // Check if we have enhanced insights
-  const hasInsights = job.jobInsights && Object.values(job.jobInsights).some(v => v && v.trim());
+  const hasInsights = job.jobInsights && Object.values(job.jobInsights).some(v => v && typeof v === 'string' && v.trim());
 
   // If no insights, show the old 3-bullet format with upgrade message
   if (!hasInsights) {
@@ -120,7 +120,7 @@ export const EnhancedJobSummary = ({ job }: EnhancedJobSummaryProps) => {
       borderColor: 'border-indigo-600/20 dark:border-indigo-400/20',
       content: job.jobInsights?.growthOpportunities
     }
-  ].filter(insight => insight.content && insight.content.trim());
+  ].filter(insight => insight.content && typeof insight.content === 'string' && insight.content.trim());
 
   return (
     <div className="space-y-6">
